@@ -1,1 +1,265 @@
-index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  background: #fff;
+  display: flex;
+  justify-content: center;
+  font-family: sans-serif;
+}
+
+.gallery {
+  width: 100%;
+  max-width: 420px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.slider {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ✨ SLIDE WITH SOFT ZOOM */
+.slide {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+.slide.active {
+  opacity: 1;
+}
+
+.slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: zoom 6s ease;
+}
+
+@keyframes zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.05); }
+}
+
+/* 💕 ROMANTIC OVERLAY */
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.2), transparent 40%);
+  pointer-events: none;
+}
+
+/* 🔽 PREVIEW STRIP */
+.thumbnails {
+  display: flex;
+  overflow-x: auto;
+  padding: 10px 8px;
+  gap: 8px;
+  background: #fff;
+  scroll-behavior: smooth;
+}
+
+.thumbnails::-webkit-scrollbar {
+  display: none;
+}
+
+.thumbnails img {
+  width: 65px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 10px;
+  opacity: 0.4;
+  transition: 0.3s;
+  flex-shrink: 0;
+}
+
+.thumbnails img.active {
+  opacity: 1;
+  transform: scale(1.08);
+  border: 2px solid #000;
+}
+
+/* 🔍 FULLSCREEN */
+.fullscreen {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.fullscreen img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+</style>
+</head>
+
+<body>
+
+<div class="gallery">
+  <div class="slider" id="slider"></div>
+  <div class="thumbnails" id="thumbnails"></div>
+</div>
+
+<!-- Fullscreen -->
+<div class="fullscreen" id="fullscreen">
+  <img id="fullImg">
+</div>
+
+<!-- 🎶 Optional Music -->
+<audio id="music" loop>
+  <source src="https://www.bensound.com/bensound-music/bensound-love.mp3" type="audio/mp3">
+</audio>
+
+<script>
+const images = [
+"https://imgur.com/IKhvOn0.jpg",
+"https://imgur.com/CvwzwFt.jpg",
+"https://imgur.com/Szd06IQ.jpg",
+"https://imgur.com/BzEHALo.jpg",
+"https://imgur.com/aChtijm.jpg",
+"https://imgur.com/T5B1NIk.jpg",
+"https://imgur.com/QeWmNOj.jpg",
+"https://imgur.com/FCI6vbK.jpg",
+"https://imgur.com/tqHGr4O.jpg",
+"https://imgur.com/dp76d7Q.jpg",
+"https://imgur.com/gArQQcP.jpg",
+"https://imgur.com/Crr0vD3.jpg",
+"https://imgur.com/SqbUoNt.jpg",
+"https://imgur.com/6D6m18O.jpg",
+"https://imgur.com/xDchxFi.jpg",
+"https://imgur.com/xuCXdck.jpg",
+"https://imgur.com/DEC8ATx.jpg",
+"https://imgur.com/ZBaD4za.jpg",
+"https://imgur.com/BViNvwX.jpg",
+"https://imgur.com/qDttvTj.jpg",
+"https://imgur.com/gFQUuEv.jpg",
+"https://imgur.com/yCYV3lc.jpg",
+"https://imgur.com/ywzoB67.jpg",
+"https://imgur.com/5tZC5qL.jpg",
+"https://imgur.com/u9sYWjC.jpg",
+"https://imgur.com/HAi8TUy.jpg"
+];
+
+const fixed = images.map(u => u.replace("imgur.com","i.imgur.com"));
+
+const slider = document.getElementById("slider");
+const thumbs = document.getElementById("thumbnails");
+const fullscreen = document.getElementById("fullscreen");
+const fullImg = document.getElementById("fullImg");
+const music = document.getElementById("music");
+
+let current = 0;
+let auto;
+
+// Create slides
+fixed.forEach((src, i) => {
+  const slide = document.createElement("div");
+  slide.className = "slide";
+
+  const img = document.createElement("img");
+  img.src = src;
+
+  // 🔍 fullscreen on tap
+  img.onclick = () => {
+    fullImg.src = src;
+    fullscreen.style.display = "flex";
+  };
+
+  slide.appendChild(img);
+
+  const overlay = document.createElement("div");
+  overlay.className = "overlay";
+  slide.appendChild(overlay);
+
+  slider.appendChild(slide);
+
+  const t = document.createElement("img");
+  t.src = src;
+  t.onclick = () => go(i);
+  thumbs.appendChild(t);
+});
+
+// Close fullscreen
+fullscreen.onclick = () => fullscreen.style.display = "none";
+
+function show(i) {
+  document.querySelectorAll(".slide").forEach((s, idx) => {
+    s.classList.toggle("active", idx === i);
+  });
+
+  const allThumbs = document.querySelectorAll(".thumbnails img");
+  allThumbs.forEach((t, idx) => {
+    t.classList.toggle("active", idx === i);
+  });
+
+  const active = allThumbs[i];
+  thumbs.scrollTo({
+    left: active.offsetLeft - thumbs.clientWidth/2 + active.clientWidth/2,
+    behavior: "smooth"
+  });
+}
+
+function go(i){
+  current = i;
+  show(current);
+}
+
+function next(){
+  current = (current + 1) % fixed.length;
+  show(current);
+}
+
+// Swipe
+let startX = 0;
+
+slider.addEventListener("touchstart", e=>{
+  startX = e.touches[0].clientX;
+  stop();
+  music.play().catch(()=>{});
+});
+
+slider.addEventListener("touchend", e=>{
+  let diff = startX - e.changedTouches[0].clientX;
+
+  if(diff > 50) next();
+  else if(diff < -50) current = (current -1 + fixed.length)%fixed.length;
+
+  show(current);
+  start();
+});
+
+// Autoplay
+function start(){
+  auto = setInterval(next, 3500);
+}
+
+function stop(){
+  clearInterval(auto);
+}
+
+slider.addEventListener("mouseenter", stop);
+slider.addEventListener("mouseleave", start);
+
+// Init
+show(current);
+start();
+</script>
+
+</body>
+</html>
