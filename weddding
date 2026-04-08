@@ -228,12 +228,6 @@ function next(){
 // Swipe
 let startX = 0;
 
-slider.addEventListener("touchstart", e=>{
-  startX = e.touches[0].clientX;
-  stop();
-  music.play().catch(()=>{});
-});
-
 slider.addEventListener("touchend", e=>{
   let diff = startX - e.changedTouches[0].clientX;
 
